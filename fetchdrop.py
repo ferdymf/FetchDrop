@@ -13,18 +13,9 @@ import threading
 import subprocess
 import urllib.request
 import zipfile
-import ctypes
 from tkinter import filedialog
 import customtkinter as ctk
 
-
-# =====================================================
-#  FIX DPI AWARENESS (ANTI-BLUR DI WINDOWS)
-# =====================================================
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(1)
-except Exception:
-    pass
 
 
 # =====================================================
@@ -408,6 +399,16 @@ class YTDownloaderApp(ctk.CTk):
         self.current_progress = 0.0
         self.target_progress = 0.0
 
+        # ── Pre-bake font objects ──────────────────────────────────────────
+        # PENTING: Jangan buat CTkFont baru setiap switch mode sidebar.
+        # Re-creating font triggers Tkinter font re-registration → frame skip.
+        # Objek font dibuat sekali di sini dan di-reuse selamanya.
+        self._fn_nav_bold = ctk.CTkFont(family="Segoe UI", size=12, weight="bold")
+        self._fn_nav_reg  = ctk.CTkFont(family="Segoe UI", size=12)
+
+        # ID untuk membatalkan animasi sidebar yang sedang berjalan
+        self._sidebar_anim_id: str | None = None
+
         self._setup_layout()
         self._apply_saved_config(cfg)
         self._animate_progress_bar()
@@ -499,7 +500,7 @@ class YTDownloaderApp(ctk.CTk):
             self.sidebar, text="🎬  Video Downloader",
             anchor="w", height=38, corner_radius=8,
             fg_color=COLOR_ACCENT, text_color=TEXT_MAIN,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=self._fn_nav_bold,
             hover_color=COLOR_ACCENT_HOV,
             command=lambda: self._select_sidebar_mode("video"),
         )
@@ -509,8 +510,8 @@ class YTDownloaderApp(ctk.CTk):
             self.sidebar, text="🎵  Audio MP3 Extractor",
             anchor="w", height=38, corner_radius=8,
             fg_color="transparent", text_color=TEXT_MUTED,
-            font=ctk.CTkFont(family="Segoe UI", size=12),
-            hover_color="#18181C",
+            font=self._fn_nav_reg,
+            hover_color="#1D1D21",
             command=lambda: self._select_sidebar_mode("audio"),
         )
         self.btn_mode_audio.grid(row=4, column=0, padx=16, pady=4, sticky="ew")
@@ -826,32 +827,41 @@ class YTDownloaderApp(ctk.CTk):
         # Jangan izinkan pergantian mode saat proses unduhan sedang berjalan
         if self._is_downloading:
             return
+
+        # ── Batalkan animasi sidebar yang mungkin sedang berjalan ──────────
+        if self._sidebar_anim_id is not None:
+            self.after_cancel(self._sidebar_anim_id)
+            self._sidebar_anim_id = None
+
         self.dl_mode = mode
         is_video = (mode == "video")
 
-        bold_font = ctk.CTkFont(family="Segoe UI", size=12, weight="bold")
-        reg_font = ctk.CTkFont(family="Segoe UI", size=12)
-
+        # ── Update text_color & font SEKARANG (pakai font pre-created) ─────
+        # Tidak ada re-registration font → tidak ada frame skip
         self.btn_mode_video.configure(
-            fg_color=COLOR_ACCENT if is_video else "transparent",
             text_color=TEXT_MAIN if is_video else TEXT_MUTED,
-            font=bold_font if is_video else reg_font,
+            font=self._fn_nav_bold if is_video else self._fn_nav_reg,
         )
         self.btn_mode_audio.configure(
-            fg_color=COLOR_ACCENT if not is_video else "transparent",
             text_color=TEXT_MAIN if not is_video else TEXT_MUTED,
-            font=bold_font if not is_video else reg_font,
+            font=self._fn_nav_bold if not is_video else self._fn_nav_reg,
         )
 
+        # ── Animasi cross-fade background tombol (smooth) ──────────────────
+        self._animate_sidebar_select(is_video, step=0)
+
+        # ── Update konten panel ────────────────────────────────────────────
         if is_video:
             self.lbl_header_title.configure(text="🎬  Video Stream Downloader")
             self.lbl_res.configure(text="Kualitas Video:")
-            # Pakai resolusi hasil Cek Media jika ada, fallback ke daftar penuh
             res_to_show = self._last_video_resolutions or VIDEO_QUALITY_OPTIONS
             self.combo_res.configure(values=res_to_show)
             self.combo_res.set(res_to_show[0])
-            self.lbl_container.grid()
-            self.combo_container.grid()
+            # ── FIX: defer grid changes ke next event loop tick ─────────────
+            # Ini memisahkan layout recalculation dari configure() di atas,
+            # sehingga Tkinter tidak perlu repaint dua kali dalam satu frame.
+            self.after(0, self.lbl_container.grid)
+            self.after(0, self.combo_container.grid)
             self.btn_download.configure(text="⬇  DOWNLOAD VIDEO")
         else:
             self.lbl_header_title.configure(text="🎵  Audio MP3 Extractor")
@@ -859,8 +869,8 @@ class YTDownloaderApp(ctk.CTk):
             self.combo_res.configure(values=AUDIO_QUALITY_OPTIONS)
             # FIX: set ke nilai default yang pasti ada di list
             self.combo_res.set(AUDIO_QUALITY_OPTIONS[0])
-            self.lbl_container.grid_remove()
-            self.combo_container.grid_remove()
+            self.after(0, self.lbl_container.grid_remove)
+            self.after(0, self.combo_container.grid_remove)
             self.btn_download.configure(text="🎵  EXTRACT MP3")
 
         self._update_quality_vars(self.combo_res.get())
@@ -868,6 +878,49 @@ class YTDownloaderApp(ctk.CTk):
             self._update_container_vars(self.combo_container.get())
         self._reset_info_display()
         self._save_current_config()
+
+    def _animate_sidebar_select(self, is_video: bool, step: int = 0):
+        """
+        Smooth 6-frame cross-fade untuk perpindahan tombol sidebar.
+        Interpolasi warna dari sidebar-bg (#111113) → accent (#E50914)
+        untuk tombol aktif, dan sebaliknya untuk tombol non-aktif.
+        Berjalan di ~16ms per frame (≈60 fps) → total ~96ms, terasa instan
+        tapi jauh lebih smooth dari perubahan langsung.
+        """
+        TOTAL = 6
+        # Warna interpolasi: dark → accent (untuk tombol yang sedang diaktifkan)
+        ACTIVATE = [
+            "#2A0204", "#4E050B", "#760912",
+            "#9E0D19", "#C61120", COLOR_ACCENT,
+        ]
+        # Warna interpolasi: accent → dark (untuk tombol yang sedang dinonaktifkan)
+        DEACTIVATE = [
+            "#B80710", "#8A0510", "#5E040C",
+            "#380308", "#1E0204", "transparent",
+        ]
+
+        vid_colors = ACTIVATE   if is_video else DEACTIVATE
+        aud_colors = DEACTIVATE if is_video else ACTIVATE
+
+        try:
+            if step < TOTAL - 1:
+                # Frame tengah: hanya ubah background
+                self.btn_mode_video.configure(fg_color=vid_colors[step])
+                self.btn_mode_audio.configure(fg_color=aud_colors[step])
+                self._sidebar_anim_id = self.after(
+                    16, lambda s=step: self._animate_sidebar_select(is_video, s + 1)
+                )
+            else:
+                # Frame terakhir: snap ke final state yang tepat
+                self._sidebar_anim_id = None
+                self.btn_mode_video.configure(
+                    fg_color=COLOR_ACCENT if is_video else "transparent",
+                )
+                self.btn_mode_audio.configure(
+                    fg_color=COLOR_ACCENT if not is_video else "transparent",
+                )
+        except Exception:
+            pass
 
     def _apply_saved_config(self, cfg: dict):
         saved_mode = cfg.get("last_mode", "video")
