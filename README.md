@@ -81,7 +81,7 @@ pyinstaller --noconsole --onefile --noupx --clean --icon=icon.ico --add-data "ic
 
 ## 👨‍💻 Author
 
-**Ferdy M. Firdaus**
+**ferdymf**
 
 ## 📜 Lisensi
 
