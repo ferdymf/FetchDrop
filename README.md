@@ -79,10 +79,6 @@ pyinstaller --noconsole --onefile --noupx --clean --icon=icon.ico --add-data "ic
 
 ---
 
-## 👨‍💻 Author
-
-**ferdymf**
-
 ## 📜 Lisensi
 
 Proyek ini didistribusikan di bawah lisensi **MIT License**. Silakan lihat file `LICENSE` untuk informasi lebih lanjut.
