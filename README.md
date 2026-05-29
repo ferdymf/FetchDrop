@@ -1,8 +1,3 @@
-Tentu! Ini adalah versi final `README.md` yang sudah saya revisi 100% berdasarkan arsitektur terbaru aplikasi Anda.
-
-Anda tinggal klik tombol **"Copy code"** di sudut kanan atas blok di bawah ini, lalu *paste* langsung ke file `README.md` di repositori GitHub Anda:
-
-```markdown
 <div align="center">
 
 <img src="https://img.shields.io/badge/FetchDrop-v1.0-red?style=for-the-badge&logo=lightning&logoColor=white" alt="FetchDrop"/>
@@ -34,7 +29,7 @@ Anda tinggal klik tombol **"Copy code"** di sudut kanan atas blok di bawah ini, 
 
 | Fitur | Deskripsi |
 |-------|-----------|
-| 🔌 **Decoupled Engine** | Mesin inti (`yt-dlp.exe` + `ffmpeg`) tidak di-bundle ke `.exe`, diunduh otomatis ke `~/.fetchdrop_engine` saat *first run* — ukuran aplikasi tetap super ringan (~13 MB) |
+| 🔌 **Decoupled Engine** | Mesin inti (`yt-dlp.exe` + `ffmpeg`) tidak di-bundle ke `.exe`, diunduh otomatis ke `~/.fetchdrop_engine` saat *first run* — ukuran aplikasi tetap ringan |
 | 🎬 **Multi-Platform** | Mendukung YouTube (Video, Shorts, Playlist, Music), TikTok, Instagram (Reels, Post, TV), dan X / Twitter |
 | 🎵 **MP3 Extractor Pintar** | Konversi video ke MP3 murni dengan *Constant Bitrate* (CBR) hingga 320 kbps, lengkap dengan metadata dan cover art |
 | 🎯 **Resolusi Cerdas** | Filter Anti-Storyboard yang memilih resolusi asli (hingga 4K) dan mengabaikan format thumbnail/storyboard palsu |
@@ -64,24 +59,20 @@ Sebelum menjalankan atau melakukan *build* dari *source code*, pastikan sistem A
 
 - **Python 3.10** atau lebih baru
 - **OS Windows 10 / 11**
-- **C Compiler (GCC/MinGW-w64)** jika ingin melakukan kompilasi Nuitka.
 - **Koneksi internet** (untuk unduh mesin otomatis saat pertama kali dijalankan)
 
 ### Dependencies
 
 Instal semua library yang dibutuhkan menggunakan `requirements.txt`:
 
-```text
+```
 customtkinter
 Pillow
 darkdetect
-zstandard
-
 ```
 
 ```bash
 pip install -r requirements.txt
-
 ```
 
 ---
@@ -91,9 +82,8 @@ pip install -r requirements.txt
 ### Langkah 1 — Clone Repositori
 
 ```bash
-git clone [https://github.com/ferdymf/FetchDrop.git](https://github.com/ferdymf/FetchDrop.git)
+git clone https://github.com/USERNAME_ANDA/FetchDrop.git
 cd FetchDrop
-
 ```
 
 ### Langkah 2 — Siapkan Virtual Environment & Instal Dependensi
@@ -101,30 +91,26 @@ cd FetchDrop
 > Disarankan menggunakan *Virtual Environment* yang bersih agar ukuran *build* tetap kecil.
 
 ```bash
-python -m venv env_yt
-env_yt\Scripts\activate
+python -m venv env
+env\Scripts\activate
 pip install -r requirements.txt
-
 ```
 
-### Langkah 3 — Build ke `.exe` menggunakan Nuitka (Rekomendasi)
+### Langkah 3 — Build ke `.exe` menggunakan PyInstaller
 
-Proyek ini menggunakan **Nuitka** untuk menerjemahkan kode Python langsung ke bahasa C (*C-level execution*). Hasilnya adalah aplikasi yang jauh lebih cepat, sangat ringan (~13 MB berkat kompresi `zstandard`), dan aman dari deteksi *false-positive* antivirus (bebas UPX).
-
-Jalankan perintah pamungkas berikut di terminal Anda:
+Jalankan perintah berikut untuk kompilasi optimal (bebas *false positive* antivirus):
 
 ```bash
-python -m nuitka --standalone --onefile --windows-console-mode=disable --enable-plugin=tk-inter --include-package-data=customtkinter --include-data-files=icon.ico=icon.ico --windows-icon-from-ico=icon.ico fetchdrop.py
-
+pyinstaller --noconsole --onefile --noupx --clean --icon=icon.ico --add-data "icon.ico;." --collect-all customtkinter -n FetchDrop fetchdrop.py
 ```
 
-> **📁 Output:** File hasil *build* akan langsung tersedia di direktori proyek dengan nama `fetchdrop.exe`.
+> **📁 Output:** File hasil *build* akan berada di `dist/FetchDrop.exe`
 
 ---
 
 ## 💡 Cara Penggunaan
 
-```text
+```
 1. Buka FetchDrop.exe
    └── Saat pertama kali, aplikasi otomatis mengunduh mesin (yt-dlp + ffmpeg)
    
@@ -144,14 +130,13 @@ python -m nuitka --standalone --onefile --windows-console-mode=disable --enable-
 
 6. Klik [DOWNLOAD VIDEO] atau [EKSTRAK MP3]
    └── File otomatis tersimpan di folder Downloads (atau folder yang dipilih)
-
 ```
 
 ---
 
 ## 🗂️ Struktur Proyek
 
-```text
+```
 FetchDrop/
 ├── fetchdrop.py        # Source code utama
 ├── icon.ico            # Ikon aplikasi
@@ -159,7 +144,6 @@ FetchDrop/
 ├── preview.PNG         # Screenshot tampilan GUI
 ├── LICENSE             # Lisensi MIT
 └── README.md           # Dokumentasi ini
-
 ```
 
 ---
@@ -167,19 +151,15 @@ FetchDrop/
 ## ❓ FAQ
 
 **Q: Apakah saya perlu menginstal yt-dlp atau ffmpeg secara manual?**
-
 > Tidak. FetchDrop akan mengunduh dan mengonfigurasi kedua mesin ini secara otomatis ke folder `~/.fetchdrop_engine` saat pertama kali dijalankan.
 
 **Q: Windows Defender memblokir aplikasi. Apa yang harus dilakukan?**
-
-> Nuitka meminimalisir risiko ini dibanding PyInstaller. Namun jika masih terdeteksi (*false positive* umum), tambahkan `fetchdrop.exe` ke *exclusion list* Windows Defender, atau jalankan langsung dari *source code*.
+> Ini adalah *false positive* umum pada aplikasi Python yang di-*compile*. Tambahkan `FetchDrop.exe` ke *exclusion list* Windows Defender, atau jalankan langsung dari *source code*.
 
 **Q: Mengapa unduhan gagal pada beberapa video?**
-
-> Kemungkinan mesin `yt-dlp` sudah kedaluwarsa karena adanya pembaruan sistem dari platform (seperti YouTube). Klik tombol **Update Engine** di sidebar kiri bawah untuk memperbarui ke versi terbaru.
+> Kemungkinan mesin `yt-dlp` sudah kedaluwarsa. Klik tombol **Update Engine** di sidebar kiri untuk memperbarui ke versi terbaru.
 
 **Q: Di mana file hasil unduhan tersimpan?**
-
 > Secara default di folder `Downloads` sistem Anda. Lokasi ini bisa diubah melalui tombol **Ubah** di bagian bawah aplikasi.
 
 ---
@@ -187,12 +167,14 @@ FetchDrop/
 ## 📜 Lisensi
 
 Proyek ini didistribusikan di bawah **MIT License**.
-Lihat file [`LICENSE`](https://www.google.com/search?q=LICENSE) untuk informasi lengkap.
+Lihat file [`LICENSE`](LICENSE) untuk informasi lengkap.
 
 ---
+
+<div align="center">
 
 Dibuat dengan ❤️ menggunakan Python & CustomTkinter
 
 ⭐ Jika proyek ini bermanfaat, jangan lupa beri bintang di GitHub!
 
-Semua sudah disesuaikan, mulai dari Nuitka, *zstandard*, kompresi 13 MB, URL repositori yang benar, hingga FAQ tambahan. Halaman GitHub Anda dijamin akan terlihat sangat meyakinkan! 🚀
+</div>
