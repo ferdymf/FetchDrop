@@ -70,6 +70,7 @@ Instal semua library yang dibutuhkan menggunakan `requirements.txt`:
 customtkinter
 Pillow
 darkdetect
+zstandard
 nuitka
 ```
 
@@ -77,7 +78,7 @@ nuitka
 pip install -r requirements.txt
 ```
 
-> **Catatan:** `Pillow` dan `darkdetect` merupakan dependensi tidak langsung dari `customtkinter`. Mencantumkannya secara eksplisit memastikan versi yang kompatibel selalu terpasang.
+> **Catatan:** `Pillow` dan `darkdetect` merupakan dependensi tidak langsung dari `customtkinter`. `zstandard` digunakan oleh Nuitka untuk kompresi *onefile* — tanpa ini, proses build akan gagal atau menghasilkan file yang lebih besar. Mencantumkan semuanya secara eksplisit memastikan versi yang kompatibel selalu terpasang.
 
 ---
 
