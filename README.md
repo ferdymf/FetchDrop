@@ -29,7 +29,7 @@
 
 | Fitur | Deskripsi |
 |-------|-----------|
-| 🔌 **Decoupled Engine** | Mesin inti (`yt-dlp.exe` + `ffmpeg`) tidak di-bundle ke `.exe`, diunduh otomatis ke `~/.fetchdrop_engine` saat *first run* — ukuran aplikasi tetap ringan |
+| 🔌 **Decoupled Engine** | Mesin inti (`yt-dlp.exe` + `ffmpeg`) tidak di-*bundle* ke `.exe`, diunduh otomatis ke `~/.fetchdrop_engine` saat *first run* — ukuran aplikasi tetap ringan |
 | 🎬 **Multi-Platform** | Mendukung YouTube (Video, Shorts, Playlist, Music), TikTok, Instagram (Reels, Post, TV), dan X / Twitter |
 | 🎵 **MP3 Extractor Pintar** | Konversi video ke MP3 murni dengan *Constant Bitrate* (CBR) hingga 320 kbps, lengkap dengan metadata dan cover art |
 | 🎯 **Resolusi Cerdas** | Filter Anti-Storyboard yang memilih resolusi asli (hingga 4K) dan mengabaikan format thumbnail/storyboard palsu |
@@ -59,6 +59,7 @@ Sebelum menjalankan atau melakukan *build* dari *source code*, pastikan sistem A
 
 - **Python 3.10** atau lebih baru
 - **OS Windows 10 / 11**
+- **Nuitka** dan **C compiler** (MinGW-w64 atau MSVC) — diperlukan untuk proses kompilasi
 - **Koneksi internet** (untuk unduh mesin otomatis saat pertama kali dijalankan)
 
 ### Dependencies
@@ -69,11 +70,14 @@ Instal semua library yang dibutuhkan menggunakan `requirements.txt`:
 customtkinter
 Pillow
 darkdetect
+nuitka
 ```
 
 ```bash
 pip install -r requirements.txt
 ```
+
+> **Catatan:** `Pillow` dan `darkdetect` merupakan dependensi tidak langsung dari `customtkinter`. Mencantumkannya secara eksplisit memastikan versi yang kompatibel selalu terpasang.
 
 ---
 
@@ -88,7 +92,7 @@ cd FetchDrop
 
 ### Langkah 2 — Siapkan Virtual Environment & Instal Dependensi
 
-> Disarankan menggunakan *Virtual Environment* yang bersih agar ukuran *build* tetap kecil.
+> Disarankan menggunakan *Virtual Environment* yang bersih agar lingkungan pengembangan tetap terisolasi.
 
 ```bash
 python -m venv env
@@ -96,15 +100,29 @@ env\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Langkah 3 — Build ke `.exe` menggunakan PyInstaller
+### Langkah 3 — Build ke `.exe` menggunakan Nuitka
 
-Jalankan perintah berikut untuk kompilasi optimal (bebas *false positive* antivirus):
+Jalankan perintah berikut untuk mengompilasi aplikasi menjadi satu file eksekutabel:
 
 ```bash
-pyinstaller --noconsole --onefile --noupx --clean --icon=icon.ico --add-data "icon.ico;." --collect-all customtkinter -n FetchDrop fetchdrop.py
+python -m nuitka --standalone --onefile --windows-console-mode=disable --enable-plugin=tk-inter --include-package-data=customtkinter --include-data-files=icon.ico=icon.ico --windows-icon-from-ico=icon.ico fetchdrop.py
 ```
 
-> **📁 Output:** File hasil *build* akan berada di `dist/FetchDrop.exe`
+**Penjelasan flag utama:**
+
+| Flag | Fungsi |
+|------|--------|
+| `--standalone` | Sertakan semua dependensi Python ke dalam output |
+| `--onefile` | Kompres hasil *standalone* menjadi satu file `.exe` tunggal |
+| `--windows-console-mode=disable` | Sembunyikan jendela Command Prompt (setara `--noconsole` di PyInstaller) |
+| `--enable-plugin=tk-inter` | Aktifkan plugin Nuitka untuk Tkinter / CustomTkinter |
+| `--include-package-data=customtkinter` | Sertakan semua aset bawaan CustomTkinter (tema, font, dsb.) |
+| `--include-data-files=icon.ico=icon.ico` | Sertakan file ikon ke dalam bundle |
+| `--windows-icon-from-ico=icon.ico` | Pasang ikon pada file `.exe` yang dihasilkan |
+
+> **📁 Output:** File hasil *build* akan berada di direktori yang sama dengan nama `fetchdrop.exe`.
+
+> **💡 Tips:** Pada *build* pertama, Nuitka akan mengunduh MinGW-w64 secara otomatis jika belum tersedia di sistem. Proses ini hanya terjadi sekali.
 
 ---
 
@@ -153,8 +171,11 @@ FetchDrop/
 **Q: Apakah saya perlu menginstal yt-dlp atau ffmpeg secara manual?**
 > Tidak. FetchDrop akan mengunduh dan mengonfigurasi kedua mesin ini secara otomatis ke folder `~/.fetchdrop_engine` saat pertama kali dijalankan.
 
+**Q: Mengapa build dengan Nuitka lebih baik dari PyInstaller?**
+> Nuitka mengompilasi Python ke kode C terlebih dahulu sebelum dikompilasi menjadi *native binary*. Hasilnya adalah eksekutabel yang lebih cepat, lebih kecil, dan secara signifikan mengurangi *false positive* dari antivirus dibanding pendekatan bundling PyInstaller.
+
 **Q: Windows Defender memblokir aplikasi. Apa yang harus dilakukan?**
-> Ini adalah *false positive* umum pada aplikasi Python yang di-*compile*. Tambahkan `FetchDrop.exe` ke *exclusion list* Windows Defender, atau jalankan langsung dari *source code*.
+> Meskipun Nuitka jauh lebih jarang memicu *false positive*, hal ini kadang masih bisa terjadi. Tambahkan `fetchdrop.exe` ke *exclusion list* Windows Defender, atau jalankan langsung dari *source code*.
 
 **Q: Mengapa unduhan gagal pada beberapa video?**
 > Kemungkinan mesin `yt-dlp` sudah kedaluwarsa. Klik tombol **Update Engine** di sidebar kiri untuk memperbarui ke versi terbaru.
