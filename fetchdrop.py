@@ -33,7 +33,7 @@ TEXT_MAIN = "#F3F4F6"
 TEXT_MUTED = "#9CA3AF"
 
 CONFIG_FILE = os.path.join(os.path.expanduser("~"),
-                           ".yt_downloader_config.json")
+                           ".fetchdrop_config.json")
 DEPENDENCY_DIR = os.path.join(os.path.expanduser("~"), ".fetchdrop_engine")
 YTDLP_EXE = os.path.join(DEPENDENCY_DIR, "yt-dlp.exe")
 
@@ -131,15 +131,14 @@ def is_valid_url(url: str) -> bool:
 
 
 def format_size(bytes_value: int | float | str) -> str:
-    """Mengkonversi bytes ke format human-readable (KB / MB / GB)."""
+    """Mengkonversi bytes ke format human-readable (KB / MB / GB / TB)."""
     if not bytes_value or bytes_value in ("NA", "0", 0):
         return "N/A"
     try:
         b = float(bytes_value)
         if b <= 0:
             return "N/A"
-        # FIX: iterasi semua unit dengan benar, termasuk GB
-        units = ("B", "KB", "MB", "GB")
+        units = ("B", "KB", "MB", "GB", "TB")
         for unit in units[:-1]:
             if b < 1024.0:
                 return f"{b:.1f} {unit}"
@@ -1130,10 +1129,18 @@ class YTDownloaderApp(ctk.CTk):
             # 1. Unduh yt-dlp
             _fetch_file(url_ytdlp, YTDLP_EXE, 0.0, 0.3, "Mesin Inti (yt-dlp)")
 
+            # Validasi: pastikan file yt-dlp tidak corrupt/tidak lengkap
+            if not os.path.exists(YTDLP_EXE) or os.path.getsize(YTDLP_EXE) < 1_000_000:
+                raise Exception("File yt-dlp tidak lengkap. Koneksi mungkin terputus, coba jalankan ulang aplikasi.")
+
             # 2. Unduh FFmpeg
             zip_path = os.path.join(DEPENDENCY_DIR, "ffmpeg_temp.zip")
             _fetch_file(url_ffmpeg, zip_path, 0.3,
                         0.8, "Ekstensi Audio (FFmpeg)")
+
+            # Validasi: pastikan zip FFmpeg tidak corrupt/tidak lengkap
+            if not os.path.exists(zip_path) or os.path.getsize(zip_path) < 10_000_000:
+                raise Exception("File FFmpeg tidak lengkap. Koneksi mungkin terputus, coba jalankan ulang aplikasi.")
 
             _splash_update("📦 Mengekstrak komponen mesin...", "85%")
             _splash_progress(0.85)
@@ -1398,16 +1405,16 @@ class YTDownloaderApp(ctk.CTk):
 
                     if "[download]" in line and "%" in line and "ETA" in line:
                         try:
-                            parts = line.split()
-                            pct_str = next(p for p in parts if "%" in p)
-                            pct_val = float(pct_str.replace("%", ""))
-                            speed_eta = line.split(" at ")[-1].strip()
-                            val = pct_val / 100.0
-                            pct_disp = f"{int(pct_val)}%"
-                            aksi = "🎬 Mengunduh video" if self.dl_mode == "video" else "🎵 Mengunduh audio"
-                            self.after(0, lambda v=val, p=pct_disp, a=aksi, e=speed_eta:
-                                       self._update_status(f"{a} • {e}", v, p))
-                        except (StopIteration, ValueError):
+                            m = re.search(r"(\d+\.?\d*)%", line)
+                            if m:
+                                pct_val = float(m.group(1))
+                                speed_eta = line.split(" at ")[-1].strip()
+                                val = pct_val / 100.0
+                                pct_disp = f"{int(pct_val)}%"
+                                aksi = "🎬 Mengunduh video" if self.dl_mode == "video" else "🎵 Mengunduh audio"
+                                self.after(0, lambda v=val, p=pct_disp, a=aksi, e=speed_eta:
+                                           self._update_status(f"{a} • {e}", v, p))
+                        except ValueError:
                             pass
 
                     elif line.startswith("[Merger]") or line.startswith("[ExtractAudio]"):
