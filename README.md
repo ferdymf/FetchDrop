@@ -71,6 +71,7 @@ customtkinter
 Pillow
 darkdetect
 zstandard
+ordered-set
 nuitka
 ```
 
@@ -78,7 +79,7 @@ nuitka
 pip install -r requirements.txt
 ```
 
-> **Catatan:** `Pillow` dan `darkdetect` merupakan dependensi tidak langsung dari `customtkinter`. `zstandard` digunakan oleh Nuitka untuk kompresi *onefile* — tanpa ini, proses build akan gagal atau menghasilkan file yang lebih besar. Mencantumkan semuanya secara eksplisit memastikan versi yang kompatibel selalu terpasang.
+> **Catatan:** `Pillow` dan `darkdetect` merupakan dependensi tidak langsung dari `customtkinter`. `zstandard` digunakan oleh Nuitka untuk kompresi *onefile* — tanpa ini, proses build akan gagal atau menghasilkan file yang lebih besar. `ordered-set` mempercepat proses kompilasi Nuitka secara signifikan. Mencantumkan semuanya secara eksplisit memastikan versi yang kompatibel selalu terpasang.
 
 ---
 
@@ -106,7 +107,7 @@ pip install -r requirements.txt
 Jalankan perintah berikut untuk mengompilasi aplikasi menjadi satu file eksekutabel:
 
 ```bash
-python -m nuitka --standalone --onefile --windows-console-mode=disable --enable-plugin=tk-inter --include-package-data=customtkinter --include-data-files=icon.ico=icon.ico --windows-icon-from-ico=icon.ico fetchdrop.py
+python -m nuitka --standalone --onefile --windows-console-mode=disable --enable-plugin=tk-inter --include-package=customtkinter --include-data-files=icon.ico=icon.ico --windows-icon-from-ico=icon.ico --output-filename=FetchDrop.exe --assume-yes-for-downloads fetchdrop.py
 ```
 
 **Penjelasan flag utama:**
@@ -117,11 +118,13 @@ python -m nuitka --standalone --onefile --windows-console-mode=disable --enable-
 | `--onefile` | Kompres hasil *standalone* menjadi satu file `.exe` tunggal |
 | `--windows-console-mode=disable` | Sembunyikan jendela Command Prompt (setara `--noconsole` di PyInstaller) |
 | `--enable-plugin=tk-inter` | Aktifkan plugin Nuitka untuk Tkinter / CustomTkinter |
-| `--include-package-data=customtkinter` | Sertakan semua aset bawaan CustomTkinter (tema, font, dsb.) |
+| `--include-package=customtkinter` | Pastikan seluruh modul CustomTkinter ikut ter-*bundle* (termasuk import dinamis) |
 | `--include-data-files=icon.ico=icon.ico` | Sertakan file ikon ke dalam bundle |
 | `--windows-icon-from-ico=icon.ico` | Pasang ikon pada file `.exe` yang dihasilkan |
+| `--output-filename=FetchDrop.exe` | Tentukan nama file output secara eksplisit |
+| `--assume-yes-for-downloads` | Izinkan Nuitka mengunduh komponen yang dibutuhkan (misal GCC) secara otomatis |
 
-> **📁 Output:** File hasil *build* akan berada di direktori yang sama dengan nama `fetchdrop.exe`.
+> **📁 Output:** File hasil *build* akan berada di direktori yang sama dengan nama `FetchDrop.exe`.
 
 > **💡 Tips:** Pada *build* pertama, Nuitka akan mengunduh MinGW-w64 secara otomatis jika belum tersedia di sistem. Proses ini hanya terjadi sekali.
 
@@ -160,6 +163,7 @@ FetchDrop/
 ├── fetchdrop.py        # Source code utama
 ├── icon.ico            # Ikon aplikasi
 ├── requirements.txt    # Daftar dependensi Python
+├── build_nuitka.bat    # Script build otomatis (Windows)
 ├── preview.PNG         # Screenshot tampilan GUI
 ├── LICENSE             # Lisensi MIT
 └── README.md           # Dokumentasi ini
