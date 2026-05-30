@@ -1,7 +1,15 @@
 """
 FetchDrop – Social Media Downloader (Decoupled Engine)
 Platform  : Windows (Compiled to .exe)
-Memerlukan: Python 3.10+, customtkinter
+Build     : Nuitka — standalone + onefile
+Memerlukan: Python 3.10+, customtkinter, nuitka
+
+Perintah build (jalankan build_nuitka.bat atau salin ke CMD):
+  python -m nuitka --standalone --onefile --windows-console-mode=disable
+    --windows-icon-from-ico=icon.ico --include-data-files=icon.ico=icon.ico
+    --enable-plugin=tk-inter --include-package=customtkinter
+    --include-package-data=customtkinter --output-filename=FetchDrop.exe
+    --assume-yes-for-downloads fetchdrop.py
 """
 
 import os
@@ -38,9 +46,24 @@ DEPENDENCY_DIR = os.path.join(os.path.expanduser("~"), ".fetchdrop_engine")
 YTDLP_EXE = os.path.join(DEPENDENCY_DIR, "yt-dlp.exe")
 
 
+def _get_app_basedir() -> str:
+    """
+    Mengembalikan direktori base tempat resource (icon, dll.) berada.
+    Kompatibel dengan tiga skenario:
+      - PyInstaller onefile : sys._MEIPASS  (temp extraction dir)
+      - Nuitka standalone/onefile & plain Python : dirname(__file__)
+    Catatan: Nuitka TIDAK men-set sys._MEIPASS maupun sys.frozen,
+    namun __file__ pada Nuitka compiled sudah mengarah ke lokasi yang benar.
+    """
+    if hasattr(sys, "_MEIPASS"):       # PyInstaller onefile (legacy/fallback)
+        return sys._MEIPASS            # type: ignore[attr-defined]
+    # Nuitka (standalone/onefile) dan plain Python dev mode
+    return os.path.dirname(os.path.abspath(__file__))
+
+
 def _meipass(*parts) -> str:
-    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, *parts)
+    """Resolusi path resource — kompatibel dengan Nuitka, PyInstaller, dan dev mode."""
+    return os.path.join(_get_app_basedir(), *parts)
 
 
 def get_startupinfo() -> subprocess.STARTUPINFO:
@@ -367,10 +390,13 @@ class YTDownloaderApp(ctk.CTk):
         self.configure(fg_color=COLOR_BG)
 
         try:
-            self.iconbitmap(
-                _meipass("icon.ico") if getattr(
-                    sys, "frozen", False) else "icon.ico"
-            )
+            # Selalu gunakan _meipass() — ia menangani semua mode secara otomatis.
+            # sys.frozen TIDAK diset oleh Nuitka, sehingga getattr(sys, "frozen")
+            # selalu False pada Nuitka compiled → ikon tidak pernah termuat.
+            # Fix: hapus kondisi tersebut dan andalkan _meipass() sepenuhnya.
+            icon_path = _meipass("icon.ico")
+            if os.path.exists(icon_path):
+                self.iconbitmap(icon_path)
         except Exception:
             pass
 
@@ -971,7 +997,7 @@ class YTDownloaderApp(ctk.CTk):
         self.lbl_status.configure(
             text="Status: Siap. Tempel tautan untuk mulai.")
 
-    def _update_status(self, text: str, progress_val=None, percent_text: str = None):
+    def _update_status(self, text: str, progress_val=None, percent_text: str | None = None):
         self.lbl_status.configure(text=f"Status: {text}")
         if progress_val is not None:
             self.target_progress = float(progress_val)
@@ -1122,6 +1148,8 @@ class YTDownloaderApp(ctk.CTk):
                                 )
                                 _splash_progress(overall_pct)
 
+        zip_path = os.path.join(DEPENDENCY_DIR, "ffmpeg_temp.zip")
+
         try:
             if self._splash:
                 self.after(0, lambda: self._splash.switch_to_determinate())
@@ -1134,7 +1162,6 @@ class YTDownloaderApp(ctk.CTk):
                 raise Exception("File yt-dlp tidak lengkap. Koneksi mungkin terputus, coba jalankan ulang aplikasi.")
 
             # 2. Unduh FFmpeg
-            zip_path = os.path.join(DEPENDENCY_DIR, "ffmpeg_temp.zip")
             _fetch_file(url_ffmpeg, zip_path, 0.3,
                         0.8, "Ekstensi Audio (FFmpeg)")
 
@@ -1167,6 +1194,15 @@ class YTDownloaderApp(ctk.CTk):
                 "✅ Sistem siap. Masukkan URL untuk memulai."))
 
         except Exception as e:
+            # Hapus file parsial agar tidak menyebabkan state corrupt pada
+            # launch berikutnya (misal: yt-dlp.exe < 1MB atau zip tidak valid).
+            for _partial in (YTDLP_EXE, zip_path):
+                try:
+                    if os.path.exists(_partial):
+                        os.remove(_partial)
+                except OSError:
+                    pass
+
             err_str = str(e)
             if any(k in err_str.lower() for k in ("urlopen", "ssl", "timeout", "connection", "http")):
                 err_msg = "❌ Gagal koneksi internet! Periksa jaringan, lalu restart aplikasi."
