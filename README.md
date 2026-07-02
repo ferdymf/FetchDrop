@@ -5,7 +5,7 @@
 # ⚡ FetchDrop
 ### Universal Media Downloader — Video & Audio Extractor
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![CustomTkinter](https://img.shields.io/badge/UI-CustomTkinter-green?style=flat-square)](https://github.com/TomSchimansky/CustomTkinter)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey?style=flat-square&logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
@@ -36,7 +36,6 @@
 | ⚡ **UI Asinkronus & Animasi** | Antarmuka tidak pernah *freeze* berkat implementasi `threading` penuh; dilengkapi animasi *color sweep* pada sidebar, *smooth progress bar* dengan easing, dan efek *fade-in* bertahap pada info media |
 | 🔔 **Toast Notification** | Notifikasi *native* Windows (PowerShell WinRT) muncul otomatis saat unduhan selesai; menggunakan skrip Base64-encoded agar kebal terhadap karakter spesial pada judul video |
 | 📋 **Auto Clipboard Detection** | Saat jendela mendapat fokus, FetchDrop otomatis mendeteksi URL valid di *clipboard* dan langsung memuat info medianya — tanpa perlu tempel manual |
-| 🕓 **Riwayat Unduhan** | Panel riwayat lengkap mencatat platform, kualitas, ukuran, dan waktu unduhan; setiap entri dapat diklik untuk langsung membuka folder tujuan |
 | 📊 **Download Counter** | Penghitung jumlah berkas yang berhasil diunduh tersimpan permanen di konfigurasi, dilengkapi tombol reset |
 | 💾 **Persistent Config** | Pengaturan terakhir (folder tujuan, kualitas, format container, mode sidebar) otomatis disimpan dan dimuat kembali saat aplikasi dibuka ulang |
 | 🔒 **Single Instance Lock** | Mencegah lebih dari satu proses FetchDrop berjalan sekaligus menggunakan *file-lock* Windows (`msvcrt`); jika aplikasi sudah aktif, dialog peringatan muncul tanpa membuka jendela baru |
@@ -63,7 +62,7 @@
 
 Sebelum menjalankan atau melakukan *build* dari *source code*, pastikan sistem Anda memiliki:
 
-- **Python 3.10** atau lebih baru
+- **Python 3.12** atau lebih baru
 - **OS Windows 10 / 11**
 - **Nuitka** dan **C compiler** (MinGW-w64 atau MSVC) — diperlukan untuk proses kompilasi
 - **Koneksi internet** (untuk unduh mesin otomatis saat pertama kali dijalankan)
@@ -113,7 +112,7 @@ pip install -r requirements.txt
 Jalankan perintah berikut untuk mengompilasi aplikasi menjadi satu file eksekutabel:
 
 ```bash
-python -m nuitka --clean-cache=all --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=icon.ico --include-data-files=icon.ico=icon.ico --enable-plugin=tk-inter --include-package=customtkinter --company-name="FetchDrop" --product-name="FetchDrop" --product-version="1.0.0.0" --file-description="FetchDrop - Social Media Downloader" --copyright="FetchDrop" --output-filename=FetchDrop.exe --assume-yes-for-downloads fetchdrop.py
+python -m nuitka --clean-cache=all --standalone --onefile --windows-console-mode=disable --windows-icon-from-ico=icon.ico --include-data-files=icon.ico=icon.ico --enable-plugin=tk-inter --include-package-data=customtkinter --company-name="FetchDrop" --product-name="FetchDrop" --product-version="1.0.0.0" --file-description="FetchDrop - Social Media Downloader" --copyright="FetchDrop" --output-filename=FetchDrop.exe --assume-yes-for-downloads fetchdrop.py
 ```
 
 **Penjelasan flag utama:**
@@ -127,7 +126,7 @@ python -m nuitka --clean-cache=all --standalone --onefile --windows-console-mode
 | `--windows-icon-from-ico=icon.ico` | Pasang ikon pada file `.exe` yang dihasilkan |
 | `--include-data-files=icon.ico=icon.ico` | Sertakan file ikon ke dalam bundle agar dapat dibaca saat runtime |
 | `--enable-plugin=tk-inter` | Aktifkan plugin Nuitka untuk Tkinter / CustomTkinter |
-| `--include-package=customtkinter` | Pastikan seluruh modul CustomTkinter ikut ter-*bundle* (termasuk import dinamis) |
+| `--include-package-data=customtkinter` | Sertakan semua data paket CustomTkinter (tema, aset, dll.) ke dalam bundle |
 | `--company-name="FetchDrop"` | Mengisi metadata *Company Name* pada file `.exe` (terlihat di *Properties → Details*) |
 | `--product-name="FetchDrop"` | Mengisi metadata *Product Name* pada file `.exe` |
 | `--product-version="1.0.0.0"` | Mengisi versi produk dalam format Windows empat segmen (`x.x.x.x`) pada metadata `.exe` |
@@ -150,8 +149,7 @@ python -m nuitka --clean-cache=all --standalone --onefile --windows-console-mode
 
 2. Pilih mode di sidebar kiri
    ├── 🎬 Video Downloader
-   ├── 🎵 Audio MP3 Extractor
-   └── 🕓 Riwayat Unduhan
+   └── 🎵 Audio MP3 Extractor
 
 3. Tempel (paste) URL video di kolom input
    └── Atau biarkan FetchDrop mendeteksi otomatis — jika URL valid ada di clipboard
@@ -164,12 +162,9 @@ python -m nuitka --clean-cache=all --standalone --onefile --windows-console-mode
    ├── Mode Video : Kualitas Video (Best / 4K / 1080p / dll) + Format Container (MP4 / MKV / Format Asli)
    └── Mode Audio : Bitrate MP3 (320 kbps / 192 kbps / 128 kbps)
 
-6. Klik [DOWNLOAD VIDEO] atau [EKSTRAK MP3]
+6. Klik [UNDUH VIDEO] atau [EKSTRAK MP3]
    └── File otomatis tersimpan di folder Downloads (atau folder yang dipilih)
    └── Notifikasi Windows muncul otomatis saat unduhan berhasil
-
-7. Lihat riwayat di panel Riwayat Unduhan
-   └── Klik entri untuk membuka folder tujuan langsung dari aplikasi
 ```
 
 ---
@@ -181,7 +176,6 @@ FetchDrop/
 ├── fetchdrop.py        # Source code utama
 ├── icon.ico            # Ikon aplikasi
 ├── requirements.txt    # Daftar dependensi Python
-├── build_nuitka.bat    # Script build otomatis (Windows)
 ├── preview.PNG         # Screenshot tampilan GUI
 ├── LICENSE             # Lisensi MIT
 └── README.md           # Dokumentasi ini
@@ -201,19 +195,19 @@ FetchDrop/
 > Meskipun Nuitka jauh lebih jarang memicu *false positive*, hal ini kadang masih bisa terjadi. Tambahkan `FetchDrop.exe` ke *exclusion list* Windows Defender, atau jalankan langsung dari *source code*.
 
 **Q: Mengapa unduhan gagal pada beberapa video?**
-> Kemungkinan mesin `yt-dlp` sudah kedaluwarsa. Klik tombol **Update Engine** di sidebar kiri untuk memperbarui ke versi terbaru.
+> Kemungkinan mesin `yt-dlp` sudah kedaluwarsa. Klik tombol **🔄 Perbarui Mesin** di sidebar kiri untuk memperbarui ke versi terbaru.
 
 **Q: Di mana file hasil unduhan tersimpan?**
 > Secara default di folder `Downloads` sistem Anda. Lokasi ini bisa diubah melalui tombol **Ubah Folder** di bagian bawah aplikasi. Perubahan disimpan permanen ke konfigurasi.
-
-**Q: Bagaimana cara melihat riwayat unduhan?**
-> Klik menu **🕓 Riwayat Unduhan** di sidebar kiri. Setiap entri mencatat judul, platform, kualitas, ukuran, dan waktu unduhan. Klik salah satu entri untuk membuka folder tujuannya langsung di File Explorer.
 
 **Q: Fitur auto-clipboard itu bekerja seperti apa?**
 > Setiap kali jendela FetchDrop mendapat fokus (misalnya setelah Anda menyalin URL dari browser), aplikasi akan otomatis mengecek isi clipboard. Jika ditemukan URL dari platform yang didukung dan belum ada di kolom input, URL tersebut langsung diisi dan analisis media dimulai.
 
 **Q: Apakah bisa menjalankan FetchDrop lebih dari satu jendela sekaligus?**
 > Tidak. FetchDrop menggunakan *single instance lock* — jika aplikasi sudah berjalan di latar belakang, mencoba membuka instance kedua akan memunculkan dialog peringatan dan proses baru langsung ditutup.
+
+**Q: Apakah Python 3.10 atau 3.11 masih didukung?**
+> Tidak. Versi ini menggunakan syntax `type` alias yang merupakan fitur baru Python 3.12 (`type JsonDict = dict[str, Any]`). Gunakan Python 3.12 atau lebih baru untuk menjalankan maupun melakukan *build* dari *source code*.
 
 ---
 
